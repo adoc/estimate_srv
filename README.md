@@ -72,19 +72,20 @@ Strings
 
 Key                  | Description
 ---------------------|-------------------------------
-`zip_location:{zip}` | Location id of given zip code.
+zip_location:`zip` | Location id of given zip code.
+
 
 Sorted Sets
 -----------
 
-Key | 
-
-* *`location_idx`* - Full index of locations.
-`estimate_idx` - Full index of estimates.
-`location_active` - Index of active locations.
-`estimate_active` - Index of active estimates.
-
-`location_zip:{location_id}` - Zip codes in a given location_id.
+Key | Description
+----|------------
+location_idx | Full index of locations.
+estimate_idx | Full index of estimates.
+location_active | Index of active locations.
+estimate_active | Index of active estimates.
+|
+location_zip:`location_id` | Zip codes in a given location_id.
 
 Hashes
 ------
