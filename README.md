@@ -70,9 +70,9 @@ Redis data types.
 Strings
 -------
 
-Key                  | Description
----------------------|-------------------------------
-zip_location:`zip` | Location id of given zip code.
+Key | Description
+----|------------
+zip_location:`zip` | `location_id` of given `zip` code.
 
 
 Sorted Sets
@@ -82,16 +82,18 @@ Key | Description
 ----|------------
 location_idx | Full index of locations.
 estimate_idx | Full index of estimates.
-location_active | Index of active locations.
-estimate_active | Index of active estimates.
+location_active | Index of *active* locations.
+estimate_active | Index of *active* estimates.
 |
 location_zip:`location_id` | Zip codes in a given location_id.
 
 Hashes
 ------
 
-`location:{id}` - Location data.
-`estimate:{id}` - Estimate data.
+Key | Description
+----|------------
+location:`id` | Location specific data.
+estimate:`id` | Individual estimate data.
 
 
 Data API
