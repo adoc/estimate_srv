@@ -69,12 +69,17 @@ Redis data types.
 
 Strings
 -------
-`zip_location:{zip}` - Location id of given zip code.
+
+Key                  | Description
+---------------------|-------------------------------
+`zip_location:{zip}` | Location id of given zip code.
 
 Sorted Sets
 -----------
 
-`location_idx` - Full index of locations.
+Key | 
+
+* *`location_idx`* - Full index of locations.
 `estimate_idx` - Full index of estimates.
 `location_active` - Index of active locations.
 `estimate_active` - Index of active estimates.
