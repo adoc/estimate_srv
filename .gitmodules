@@ -1,0 +1,9 @@
+[submodule "thredis"]
+	path = thredis
+	url = https://gist.github.com/9586483.git
+[submodule "safedict"]
+	path = safedict
+	url = https://gist.github.com/9588060.git
+[submodule "orderedset"]
+	path = orderedset
+	url = https://gist.github.com/9651601.git
