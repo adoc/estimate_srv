@@ -4,3 +4,4 @@
 -   Initial version
 -   Set up initial modules and directories.
 -   Tune setup.py file for oest module.
+-   Added thredis module as git submodule.

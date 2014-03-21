@@ -16,6 +16,16 @@ This is the developer documentation for the Online Estimate web service and API.
 The Python API is found in the `oest` module. The Javascript API can be loaded with the `oest.js` module. *(This requires Backbone.js, Underscore.js and jQuery)*
 
 
+<a name="#section_module"></a>
+Modules
+===
+This package has two distinct API modules. The **oest.py** or `oest` module for Python and the `oest.js` module for Javascript.
+
+Each API exposes similar functions but behind the scenes work much differently. The Python module is the "server-side" component, interacting with a Redis data store and other back-end systems. The Javascript module is the "client-side" component and handles AJAX calls to the web service.
+
+The `oest.service` module
+
+
 <a name="section_parameter_glossary"></a>
 Parameter Glossary
 ===
