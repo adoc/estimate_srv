@@ -7,7 +7,8 @@ README = open(os.path.join(here, 'README.md')).read()
 CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 requires = [
-    'redis',
+    'thredis',
+    'formencode',
     'pyramid',
     'pyramid_debugtoolbar',
     'waitress',
@@ -27,7 +28,8 @@ setup(name='oest',
       author_email='nick@studiocoda.com',
       url='https://github.com/adoc',
       keywords='oest online estimate web',
-      packages=['oest', 'thredis', 'safedict'],
+      dependency_links=['https://github.com/adoc/thredis/archive/develop.zip#egg=thredis-develop',],
+      packages=['oest', 'safedict'],
       include_package_data=True,
       zip_safe=False,
       install_requires=requires,
@@ -35,6 +37,6 @@ setup(name='oest',
       test_suite="tests",
       entry_points="""\
       [paste.app_factory]
-      main = service:main
+      main = oest.service:main
       """,
       )
