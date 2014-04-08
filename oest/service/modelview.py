@@ -1,10 +1,15 @@
+import logging
 import formencode
+import posixpath
 import thredis
+import pyramid.config
+import pyramid.httpexceptions
+import pyramid.response
 import oest.model
 
 # Decorators
-
-def validate_model(params=None, match=None):
+# This is more of a general function. we should put this in gist.
+def validate_model(params=None, match=None, headers=lambda r: tuple()):
     """Basic validation decorator for usage in `view_config`.
 
     Takes `params` and `match` as arguments. 
@@ -13,29 +18,31 @@ def validate_model(params=None, match=None):
     """
     
     if params is None and match is None: # Validate the usage of the validator!
-        raise ValueError("`validate` expected a `params` schema or a `match` "
+        raise ValueError("`validate_model` expected a `params` schema or a `match` "
                             "schema.")
-    if params and not issubclass(params, Schema):
+    if params and not issubclass(params, formencode.Schema):
         raise ValueError("`params` expected a `formencode.Schema` type.")
-    if match and not issubclass(match, Schema):
+    if match and not issubclass(match, formencode.Schema):
         raise ValueError("`match` expected a `formencode.Schema` type.")
 
     def _decorator(view_callable):
         def _inner(context, request):
             def validate_params(this):
+                data = request.json_body or request.params
                 try:
-                    data = request.json_body or request.params
                     return params.to_python(data)
-                except Invalid as e:
-                    log.error("`validate` failed on request.params %s. Error: %s" % (data, e.msg))
-                    raise exc.HTTPBadRequest()
+                except formencode.Invalid as e:
+                    logging.error("`validate_model` failed on request.params %s. Error: %s" % (data, e.msg))
+                    raise pyramid.httpexceptions.HTTPBadRequest(headers=headers(request),
+                                                                body=thredis.json.dumps({'msg': e.unpack_errors()}))
 
             def validate_match(this):
                 try:
                     return match.to_python(request.matchdict)
-                except Invalid:
-                    log.error("`validate` failed on request.matchdict %s." % request.matchdict)
-                    raise exc.HTTPNotFound()
+                except formencode.Invalid:
+                    logging.error("`validate_model` failed on request.matchdict %s." % request.matchdict)
+                    raise pyramid.httpexceptions.HTTPNotFound(headers=headers(request),
+                                                              body=thredis.json.dumps({'msg': e.unpack_errors()}))
 
             if params:
                 request.set_property(validate_params, 'validated_params',
@@ -65,80 +72,226 @@ def execute_model(view_callable):
 get_redis = lambda request: request.registry.settings['redis']
 
 
-class ModelView:
+class DictSets:
+    def __init__(self):
+        self.__inner = {}
+
+    def add(self, key, method):
+        item = self.__inner.get(key, set())
+        item.add(method)
+        self.__inner[key] = item
+
+    def __getitem__(self, key):
+        return self.__inner[key]
+
+    def __setitem__(self, key, val):
+        self.__inner[key] = set(val)
+
+    def __delitem__(self, key):
+        del self.__inner[key]
+
+    def __contains__(self, key):
+        return key in self.__inner
+
+
+class CrudConfigurator:
+    """ """
+    def __init__(self, config, route_prefix='', route_name_func=None):
+        self.config = config
+        self.route_prefix = route_prefix
+        if callable(route_name_func):
+            self._gen_route_name = lambda ns: route_name_func(ns)
+        else:
+            self._gen_route_name = lambda ns: ns
+        self._added_methods = DictSets()
+        self._allowed_headers = ['Content-Type']
+
+    # The magic sauce in "CORS". Though this will need to be dyanimcally generated.
+    def headers(self, request):
+        # Consider these headers:
+        # X-CSRF-Token
+        # X-Requested-With
+        # Accept
+        # Accept-Version
+        # Content-Length
+        # Content-MD5
+        # Content-Type
+        # Date
+        # X-Api-Version
+        added_methods = self._added_methods[request.matched_route.pattern]
+        headers = [
+            # Always creds?
+            ('Access-Control-Allow-Credentials', 'true'),
+            ('Access-Control-Allow-Headers', ','.join(self._allowed_headers)),
+            ('Access-Control-Allow-Methods', ','.join(added_methods))]
+            # At first glance, this may appear insecure, but the case here is
+            # that the referer should be checked elsewhere.
+        if request.referer:
+            headers.append(('Access-Control-Allow-Origin', request.referer.rstrip('/')))
+        return headers
+
+    def auth_origin(self, view_callable):
+        """Decorator """
+        def _auth_origin(context, request):
+            request.response.headers.update(self.headers(request))
+            return view_callable(context, request)
+        return _auth_origin
+
+    def add_route_view(self, request_method, view_callable,
+                        route_namespace=None, route_postfix='', decorators=()):
+        request_method = request_method.upper()
+        route_name = self._gen_route_name(route_namespace or
+                                            request_method.lower())
+
+        if route_postfix:
+            route_prefix = posixpath.join(self.route_prefix, route_postfix)
+        else:
+            route_prefix = self.route_prefix
+
+        logging.debug("Add %s Route: name: %s, prefix: %s" % (request_method,
+                        route_name, route_prefix))
+        self.config.add_route(route_name, route_prefix, request_method=request_method)
+        self.config.add_view(view_callable,
+                        route_name=route_name,
+                        decorator=(self.auth_origin,)+decorators,
+                        renderer='json')
+        self._added_methods.add(route_prefix, request_method)
+
+
+class ModelViews:
+    """An adapter between RedisObj Model and it's relevant Pyramid
+    Views.
     """
-    """
-    __bound_methods = ('all', 'get', 'add', 'update', 'delete')
-    
-    def __init__(self, model_class):
-        if issubclass(model, thredis.RedisObj)
+    def __init__(self, model_class, config=None):
+        if issubclass(model_class, thredis.RedisObj):
             self.__model_class = model_class
         else:
             raise ValueError("`Model` requires a RedisObj class for an argument.")
 
-    def __bind_methods(self):
-        # Decorate and add "bind" to all methods.
-        for attr in self.__bound_methods:
-            val = getattr(self, attr)
-            if not attr.starswith('_') and callable(val, function):
-                def bind(self, request):
-                    model = self.__model_class(get_redis(request))
-                    return val(self, model, request)
-                self[attr] = bind
+        if config is not None:
+            self.config(config)
 
-    def config(self, config):
+    @property
+    def modelspace(self):
+        return self.__model_class.modelspace
+
+    @property
+    def get_schema(self):
+        return self.__model_class.get_schema
+
+    @property
+    def update_schema(self):
+        return self.__model_class.update_schema
+
+    def bind(self, request):
+        return self.__model_class(get_redis(request))
+
+    def config(self, config, route_prefix=''):
+        if not isinstance(config, pyramid.config.Configurator):
+            raise ValueError('`Model.config` requires argument to be a Pyramid '
+                             'Configurator.')
+
+        def _gen_route_name(ns):
+            return '_'.join([self.modelspace, ns])
+
+        config = CrudConfigurator(config, route_prefix=route_prefix,
+                    route_name_func=_gen_route_name)
+
+        id_attr = self.__model_class.id_attr
+        id_pattern = '{%s}' % id_attr
+
+        def add_all():
+            config.add_route_view('GET', self.all, route_namespace='all')
+
+        def add_create():
+            config.add_route_view('POST', self.create, 
+                    route_namespace='create',
+                    decorators=(validate_model(match=self.get_schema,
+                                               params=self.update_schema,
+                                               headers=config.headers),
+                                execute_model))
+
+        def add_retrieve():
+            config.add_route_view('GET', self.retrieve,
+                    route_namespace='retrieve', route_postfix=id_pattern,
+                    decorators=(validate_model(match=self.get_schema,
+                                               headers=config.headers),))
+
+        def add_update():
+            config.add_route_view('PUT', self.update,
+                    route_namespace='update', route_postfix=id_pattern,
+                    decorators=(validate_model(match=self.get_schema,
+                                               params=self.update_schema,
+                                               headers=config.headers),
+                                execute_model))
+
+        def add_delete():
+            config.add_route_view('DELETE', self.delete,
+                    route_namespace='delete', route_postfix=id_pattern,
+                    decorators=(validate_model(match=self.get_schema,
+                                               headers=config.headers),
+                               execute_model))
+
+        def add_options():
+            """Add OPTIONS method routes.
+            """
+            config.add_route_view('OPTIONS', self.options)
+            config.add_route_view('OPTIONS', self.options,
+                                route_namespace='options_id',
+                                route_postfix=id_pattern)
+        
+
         # TODO: Add permissions!
-        config.add_route(self.modelspace+'_all', '/')
-        config.add_route(self.modelspace+'_add', '/')
-        config.add_route(self.modelspace+'_get', '/{id}')
-        config.add_route(self.modelspace+'_update', '/{id}')
-        config.add_route(self.modelspace+'_delete', '/{id}')
+        Model = self.__model_class
+        add_options()
 
-        config.add_view(self.all,
-                        route_name='location_all',
-                        request_method='GET',
-                        renderer='json')
-        config.add_view(self.get,
-                        route_name='location_get',
-                        request_method='GET',
-                        renderer='json',
-                        decorator=(validate_model(match=self.get_schema),))
-        config.add_view(self.add,
-                        route_name='location_add',
-                        request_method='POST',
-                        renderer='json',
-                        decorator=(validate_model(match=self.get_schema,
-                                                  params=self.update_schema),
-                                   execute_model))
-        config.add_view(self.update,
-                        route_name='location_update',
-                        request_method='PUT',
-                        renderer='json',
-                        decorator=(validate_model(match=self.get_schema,
-                                                  params=self.update_schema),
-                                   execute_model))
-        config.add_view(self.delete,
-                        route_name='location_delete',
-                        request_method='DELETE',
-                        renderer='json',
-                        decorator=(validate_model(match=self.get_schema),))
+        # Probably use a map dict in the model instead of looking at attribs.
+        if hasattr(Model, 'all'):
+            add_all()
 
+        if hasattr(Model, 'create'):
+            add_create()
+
+        if hasattr(Model, 'retrieve'):
+            add_retrieve()
+
+        if hasattr(Model, 'update'):
+            add_update()
+
+        if hasattr(Model, 'delete'):
+            add_delete()
+
+    def build_obj(self, request):
+        """Builds an input object based on validated match and
+        parameters.
+        """
+        obj = {}
+        if 'validated_params' in request:
+            obj.update(request.validated_params)
+        if 'validated_matchdict' in request:
+            obj.update(request.validated_matchdict)
+        return obj
 
     # Views
-    def all(self, model, request):
-        return list(model.all())
+    def options(self, request):
+        return request.response
 
-    def get(self, model, request):
-        id_ = request.validated_matchdict['id']
-        return model.get(id_)
+    def all(self, request):
+        model = self.bind(request)
+        return model.all(**self.build_obj(request))
 
-    def add(self, model, request):
-        return model.add(request.json_body)
+    def create(self, request):
+        model = self.bind(request)
+        return model.create(**self.build_obj(request))
 
-    def update(self, model, request):
-        id_ = request.validated_matchdict['id']
-        return model.add(request.json_body, id=id_)
+    def retrieve(self, request):
+        model = self.bind(request)
+        return model.retrieve(**self.build_obj(request))
 
-    def delete(self, model, request):
-        id_ = request.validated_matchdict['id']
-        return model.delete(id_)
+    def update(self, request):
+        model = self.bind(request)
+        return model.update(**self.build_obj(request))
+
+    def delete(self, request):
+        model = self.bind(request)
+        return model.delete(**self.build_obj(request))

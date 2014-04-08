@@ -1,3 +1,4 @@
+"use strict";
 /*
 oest-common.js - Online Estimate Web Service Javascript API
 
@@ -15,13 +16,16 @@ must be secured with SSL as well.
 
 These modules requires HTML5.
 */
-
 require.config({
     paths: {
         underscore: ['https://code.webmob.net/js/api1.0/underscore.min',
                     '/js/api1.0/underscore.min'],
-        zepto: ['https://code.webmob.net/js/api1.0/zepto.min',
-                    '/js/api1.0/zepto.min'],
+        //jquery: ['https://code.webmob.net/js/api1.0/zepto.min',
+        //            '/js/api1.0/zepto.min'],
+        jquery: ['https://code.webmob.net/js/api1.0/jquery-min',
+                    '/js/api1.0/jquery-min'],
+        text: ['https://code.webmob.net/js/api1.0/text.min',
+                '/js/api1.0/text.min'],
         backbone: ['https://code.webmob.net/js/api1.0/backbone.min',
                     '/js/api1.0/backbone.min'],
         crypto_core: ['https://code.webmob.net/js/api1.0/crypto-core.min',
@@ -36,15 +40,30 @@ require.config({
                     '/js/api1.0/rng.min'],
         persist: ['https://code.webmob.net/js/api1.0/persist.min',
                     '/js/api1.0/persist.min'],
-        oest_core: ['/js/oest-core']
+        serialize_object: ['https://code.webmob.net/js/api1.0/jquery.serialize-object.min',
+                    '/js/api1.0/jquery.serialize-object.min'],
+        oest_boot: ['/js/oest-boot'],
+        oest_core: ['/js/oest-core'],
+        oest_config: ['/js/oest-config'],
+        oest_events: ['/js/oest-events'],
+        oest_models: ['/js/oest-models'],
+        admin_boot: ['/js/admin-boot'],
+        admin_router: ['/js/admin-router'],
+        admin_views: ['/js/admin-views']
     },
     shim: {
-        backbone: {
-            deps: ['zepto', 'underscore'],
-            exports: 'Backbone'
-        },
         underscore: {
             exports: '_'
+        },
+        jquery: {
+            exports: '$',
+            init: function () {
+                window.jQuery = $;
+            }
+        },
+        backbone: {
+            deps: ['jquery', 'underscore'],
+            exports: 'Backbone'
         },
         crypto_sha: {
             deps: ['crypto_core']
@@ -58,8 +77,30 @@ require.config({
         persist: {
             exports: 'Persist'
         },
-        oest: {
+        serialize_object: {
+            deps: ['jquery']
+        },
+        oest_core: {
+            deps: ['backbone', 'oest_events'],
             exports: 'Oest'
+        },
+        oest_events: {
+            deps: ['underscore', 'backbone'],
+            exports: 'Oest.Events'
+        },
+        oest_models: {
+            deps: ['backbone'],
+            exports: 'Oest.Models'
+        },
+        oest_boot: {
+            deps: ['oest_core', 'oest_config']
+        },
+        admin_boot: {
+            dets: ['jquery', 'oest_core', 'oest_config']
+        },
+        admin_views: {
+            deps: ['serialize_object'],
+            exports: 'Oest.AdminViews'
         }
     },
     timeout: 5

@@ -1,9 +1,7 @@
+"use strict";
 /*
-
-
 */
-
-define(['backbone', 'events'], function(Backbone, Events) {
+define(['backbone', 'oest_events'], function(Backbone, Events) {
     return {        
         from_config: function (params) {
             params = params || {};

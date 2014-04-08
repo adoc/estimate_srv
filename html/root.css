@@ -1,0 +1,52 @@
+/* Thanks http://getbootstrap.com/2.3.2/examples/sticky-footer-navbar.html */
+html,
+body {
+    height: 100%;
+}
+
+label {
+    display: block !important;
+}
+
+#wrap {
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -100px;
+}
+
+#push, #footer {
+    height: 100px;
+}
+
+/*
+#wrap > .container {
+    padding-top: 60px;
+}*/
+
+.page {
+    width: 100%;
+}
+
+
+
+.form-group {
+    /* Form elements */
+    margin-left: 4px;
+    margin-right: 4px;
+}
+
+.nav-tabs {
+    float: left;
+    border: none;
+}
+
+.nav-tabs > li > a:hover {
+    border-bottom: none;
+}
+
+.nav > li > a {
+    /* Nav tabs/links*/
+    padding-top: 14px;
+    padding-bottom: 15px;
+}
