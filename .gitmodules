@@ -4,3 +4,6 @@
 [submodule "orderedset"]
 	path = orderedset
 	url = https://gist.github.com/9651601.git
+[submodule "thredis"]
+	path = thredis
+	url = https://github.com/adoc/thredis/
