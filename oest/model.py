@@ -34,6 +34,51 @@ class LocationZipCodeGetSchema(LocationGetSchema, ZipCodeSchema):
     pass
 
 
+class ModelObject:
+    modelspace = 'model'
+
+    def __init__(self, session):
+        self.s = session
+        self.r = RedisObj(self.modelspace, session=session)
+
+
+class Location(ModelObject):
+    """
+    """
+    get_schema = LocationGetSchema
+    update_schema = LocationUpdateSchema
+    modelspace = 'location'
+
+    def all(self, **obj):
+        logging.debug('Model all!')
+        # Let's get in to the "location:active:set"
+
+
+
+
+
+        if 'active' in obj:
+            pass
+        else:
+            pass
+
+        return []
+
+
+    def create(self, **obj):
+        logging.debug('Model create!')
+
+    def retrieve(self, location_id):
+        logging.debug('Model retrieve!')
+
+    def update(self, **obj):
+        logging.debug('Model update!')
+
+    def delete(self, location_id):
+        logging.debug('Model delete!')
+
+
+
 '''
 class ZipCode(thredis.String):
     get_schema = ZipCodeSchema
@@ -44,7 +89,9 @@ class ZipCode(thredis.String):
         thredis.String.__init__(self, self.modelspace, *args, session=session)
 '''
 
-
+'''
+# Old Model. Too abstracted and couldn't deliver.
+# Pragmatism for now.
 class Location(object):
     get_schema = LocationGetSchema
     update_schema = LocationUpdateSchema
@@ -67,3 +114,4 @@ class Location(object):
 
     def delete(self, location_id=None):
         thredis.Collection.delete(self, location_id)
+'''

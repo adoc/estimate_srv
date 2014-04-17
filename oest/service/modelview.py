@@ -73,6 +73,7 @@ get_redis = lambda request: request.registry.settings['redis']
 
 
 class DictSets:
+    """ """
     def __init__(self):
         self.__inner = {}
 
@@ -163,10 +164,10 @@ class ModelViews:
     Views.
     """
     def __init__(self, model_class, config=None):
-        if issubclass(model_class, thredis.RedisObj):
+        if issubclass(model_class, oest.model.ModelObject):
             self.__model_class = model_class
         else:
-            raise ValueError("`Model` requires a RedisObj class for an argument.")
+            raise ValueError("`Model` requires a ModelObject class for an argument.")
 
         if config is not None:
             self.config(config)
@@ -200,11 +201,24 @@ class ModelViews:
         id_attr = self.__model_class.id_attr
         id_pattern = '{%s}' % id_attr
 
+        def null_action(this, request):
+            return request.response
+
+        def model_action(action_name):
+            """Hook in to model actions with this decorator. The inner
+            function acts as the view_callable."""
+            def _model_action(this, request):
+                model = self.bind(request)
+                obj = self.build_obj(request)
+                action = getattr(model, action_name)
+                return action(**obj)
+            return _model_action
+
         def add_all():
-            config.add_route_view('GET', self.all, route_namespace='all')
+            config.add_route_view('GET', model_action('all'), route_namespace='all')
 
         def add_create():
-            config.add_route_view('POST', self.create, 
+            config.add_route_view('POST', model_action('create'), 
                     route_namespace='create',
                     decorators=(validate_model(match=self.get_schema,
                                                params=self.update_schema,
@@ -212,13 +226,13 @@ class ModelViews:
                                 execute_model))
 
         def add_retrieve():
-            config.add_route_view('GET', self.retrieve,
+            config.add_route_view('GET', model_action('retrieve'),
                     route_namespace='retrieve', route_postfix=id_pattern,
                     decorators=(validate_model(match=self.get_schema,
                                                headers=config.headers),))
 
         def add_update():
-            config.add_route_view('PUT', self.update,
+            config.add_route_view('PUT', model_action('update'),
                     route_namespace='update', route_postfix=id_pattern,
                     decorators=(validate_model(match=self.get_schema,
                                                params=self.update_schema,
@@ -226,7 +240,7 @@ class ModelViews:
                                 execute_model))
 
         def add_delete():
-            config.add_route_view('DELETE', self.delete,
+            config.add_route_view('DELETE', model_action('delete'),
                     route_namespace='delete', route_postfix=id_pattern,
                     decorators=(validate_model(match=self.get_schema,
                                                headers=config.headers),
@@ -235,8 +249,8 @@ class ModelViews:
         def add_options():
             """Add OPTIONS method routes.
             """
-            config.add_route_view('OPTIONS', self.options)
-            config.add_route_view('OPTIONS', self.options,
+            config.add_route_view('OPTIONS', null_action)
+            config.add_route_view('OPTIONS', null_action,
                                 route_namespace='options_id',
                                 route_postfix=id_pattern)
         
@@ -272,6 +286,7 @@ class ModelViews:
             obj.update(request.validated_matchdict)
         return obj
 
+    '''
     # Views
     def options(self, request):
         return request.response
@@ -294,4 +309,4 @@ class ModelViews:
 
     def delete(self, request):
         model = self.bind(request)
-        return model.delete(**self.build_obj(request))
+        return model.delete(**self.build_obj(request))'''
