@@ -54,9 +54,6 @@ class Location(ModelObject):
         # Let's get in to the "location:active:set"
 
 
-
-
-
         if 'active' in obj:
             pass
         else:
