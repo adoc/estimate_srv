@@ -27,7 +27,7 @@ define(['backbone'], function(Backbone) {
     // Location model.
     // Careful with this namespace `Location`.
     var Location = Backbone.Model.extend({
-        // idAttribute: "_id",
+        idAttribute: "_id",
         urlRoot: 'https://scc1.webmob.net/api/v1/location'
     });
 

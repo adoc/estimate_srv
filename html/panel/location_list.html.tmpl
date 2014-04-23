@@ -1,12 +1,5 @@
 <form id="locations_form">
     <table class="table striped">
-        <thead>
-            <tr>
-                <th>Abbr.</th>
-                <th>Name</th>
-                <th></th>
-            </tr>
-        </thead>
         <tbody>
             <tr class="new_item">
                 <td class="form-group">
@@ -20,10 +13,17 @@
                 <td class="form-group" style="width: 300px;">
                     <button type="button" name="new_btn" class="btn">New</button>
                 </td>
+                <td></td>
+            </tr>
+            <tr>
+                <th>Abbr.</th>
+                <th>Name</th>
+                <th>Zips</th>
+                <th></th>
             </tr>
         <% _.each(collection, function(item) { %>
             <%
-            var id = item.get('id'),
+            var id = item.get('_id'),
                 key = item.get('key'),
                 name = item.get('name'),
                 desc = item.get('desc'),         

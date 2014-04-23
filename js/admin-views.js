@@ -1,4 +1,4 @@
-define(['backbone', 'oest_models', 'text!/location_list.html.tmpl', 'text!/location_zip_list.html.tmpl'],
+define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
     function (Backbone, Models, location_list_tmpl, location_zip_list_tmpl) {
 
         var invalidForm = function(form, prefix) {
@@ -139,9 +139,9 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl', 'text!/locat
                 var that = this,
                     form = $(ev.currentTarget).closest('form'),
                     form_obj = form.serializeObject(),
-                    id = this.getItemId(ev),
-                    item = this.collection.get(id);
+                    id = this.getItemId(ev);
 
+                var item = this.collection.get(id);
                 item.on("invalid", invalidForm.call(this, form));
                 item.set(form_obj, {validate: true});
 

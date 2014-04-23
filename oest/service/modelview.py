@@ -20,9 +20,15 @@ def validate_model(params=None, match=None, headers=lambda r: tuple()):
     if params is None and match is None: # Validate the usage of the validator!
         raise ValueError("`validate_model` expected a `params` schema or a `match` "
                             "schema.")
-    if params and not issubclass(params, formencode.Schema):
+
+    if params and issubclass(params, formencode.Schema):
+        params = params()
+    elif params is not None:
         raise ValueError("`params` expected a `formencode.Schema` type.")
-    if match and not issubclass(match, formencode.Schema):
+
+    if match and issubclass(match, formencode.Schema):
+        match = match()
+    elif match is not None:
         raise ValueError("`match` expected a `formencode.Schema` type.")
 
     def _decorator(view_callable):
@@ -125,8 +131,8 @@ class CrudConfigurator:
             ('Access-Control-Allow-Credentials', 'true'),
             ('Access-Control-Allow-Headers', ','.join(self._allowed_headers)),
             ('Access-Control-Allow-Methods', ','.join(added_methods))]
-            # At first glance, this may appear insecure, but the case here is
-            # that the referer should be checked elsewhere.
+        # At first glance, this may appear insecure, but if the referer
+        # should be checked, it should be checked elsewhere.
         if request.referer:
             headers.append(('Access-Control-Allow-Origin', request.referer.rstrip('/')))
         return headers
@@ -181,11 +187,27 @@ class ModelViews:
         return self.__model_class.get_schema
 
     @property
+    def create_schema(self):
+        return self.__model_class.create_schema
+
+    @property
     def update_schema(self):
         return self.__model_class.update_schema
 
     def bind(self, request):
         return self.__model_class(get_redis(request))
+
+    def build_obj(self, request):
+        """Builds an input object based on validated match and
+        parameters.
+        """
+        obj = {}
+
+        if hasattr(request, 'validated_params'):
+            obj.update(request.validated_params)
+        if hasattr(request, 'validated_matchdict'):
+            obj.update(request.validated_matchdict)
+        return obj
 
     def config(self, config, route_prefix=''):
         if not isinstance(config, pyramid.config.Configurator):
@@ -221,7 +243,7 @@ class ModelViews:
             config.add_route_view('POST', model_action('create'), 
                     route_namespace='create',
                     decorators=(validate_model(match=self.get_schema,
-                                               params=self.update_schema,
+                                               params=self.create_schema,
                                                headers=config.headers),
                                 execute_model))
 
@@ -275,16 +297,7 @@ class ModelViews:
         if hasattr(Model, 'delete'):
             add_delete()
 
-    def build_obj(self, request):
-        """Builds an input object based on validated match and
-        parameters.
-        """
-        obj = {}
-        if 'validated_params' in request:
-            obj.update(request.validated_params)
-        if 'validated_matchdict' in request:
-            obj.update(request.validated_matchdict)
-        return obj
+
 
     '''
     # Views

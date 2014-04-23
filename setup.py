@@ -12,6 +12,7 @@ requires = [
     'pyramid',
     'pyramid_debugtoolbar',
     'waitress',
+    'paste'
     ]
 
 setup(name='oest',

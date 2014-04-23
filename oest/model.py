@@ -1,7 +1,29 @@
 """ """
 import logging
+import uuid
 import formencode
 import thredis
+import thredis.model
+
+
+# General, maybe in `thredis.schema`
+class ModelObject:
+    modelspace = 'model'
+
+    def __init__(self, session):
+        self.s = session
+        self.models = dict(self.__build_models())
+
+    def __build_models(self):
+        for name, ModelCls in self.schema.items():
+            yield name, ModelCls(self.modelspace,
+                                    ModelCls.__name__.lower(),
+                                    name, session=self.s)
+
+    def _get_model(self, modelname):
+        if modelname in self.models:
+            return self.models[modelname]
+
 
 
 # TODO: Extend the basic validator types.
@@ -10,14 +32,27 @@ class LocationGetSchema(formencode.schema.Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
-    id = formencode.validators.String(min=36, max=36)
+    _id = formencode.validators.String(min=36, max=36)
 
 
-class LocationUpdateSchema(formencode.schema.Schema):
+class LocationCreateSchema(formencode.schema.Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
-    id = formencode.validators.String(min=36, max=36, if_missing=None)
+    key = formencode.validators.String(min=1, max=16, not_empty=True, lower=True, if_missing=None)
+    name = formencode.validators.UnicodeString(min=3, max=64, not_empty=True, if_missing=None)
+    desc = formencode.validators.UnicodeString(min=5, max=1024, not_empty=False, if_missing=None)
+
+
+class LocationUpdateSchema(formencode.schema.Schema):
+    # Unfortunate duplicate as inheritance doesn't seem to be working anymore.
+    # Update if you change anything above/
+    # TODO: Dig in to inheritance issues with formencode Scheme or this
+    #   implementation of them.
+    allow_extra_fields = True
+    filter_extra_fields = True
+
+    _id = formencode.validators.String(min=36, max=36)
     key = formencode.validators.String(min=1, max=16, not_empty=True, lower=True, if_missing=None)
     name = formencode.validators.UnicodeString(min=3, max=64, not_empty=True, if_missing=None)
     desc = formencode.validators.UnicodeString(min=5, max=1024, not_empty=False, if_missing=None)
@@ -34,45 +69,89 @@ class LocationZipCodeGetSchema(LocationGetSchema, ZipCodeSchema):
     pass
 
 
-class ModelObject:
-    modelspace = 'model'
 
-    def __init__(self, session):
-        self.s = session
-        self.r = RedisObj(self.modelspace, session=session)
 
 
 class Location(ModelObject):
     """
     """
-    get_schema = LocationGetSchema
-    update_schema = LocationUpdateSchema
+
     modelspace = 'location'
+    id_attr = '_id'
+
+    get_schema = LocationGetSchema
+    create_schema = LocationCreateSchema
+    update_schema = LocationUpdateSchema
+
+    schema = {
+            'all': thredis.model.Set,
+            'active': thredis.model.Set,
+            'record': thredis.model.Hash
+            }
+
+    @staticmethod
+    def _ingress(obj):
+        obj['_id'] = uuid.UUID(obj['_id'])
+
+        return obj
+
+    @staticmethod
+    def _egress(obj):
+        obj['_id'] = str(obj['_id'])
+
+        return obj
+
+    def _retrieve(self, location_id):
+        record = self.models['record']
+        return self._egress(record.get(location_id))
+    retrieve = _retrieve
+
+    def _update(self, **obj):
+        active = self.models['active']
+        every = self.models['all']
+        record = self.models['record']
+
+        obj = self._ingress(obj)
+
+        print(obj)
+
+        if '_active' in obj:
+            if obj['_active'] is True:
+                active.add(obj['_id'])
+            else:
+                active.delete(obj['_id'])
+
+        if '_id' in obj:
+            every.add(obj['_id'])
+            record.set(obj['_id'], obj)
+        else:
+            raise Exception("model update requires _id value")
+
+    update = _update
 
     def all(self, **obj):
-        logging.debug('Model all!')
         # Let's get in to the "location:active:set"
+        logging.debug('Model all! obj: %s' % obj)
+        record = self.models['record']
 
-
-        if 'active' in obj:
-            pass
+        if obj.get('active') is True:
+            active = self.models['active']
+            return [self.retrieve(id_) for id_ in active.all()]
         else:
-            pass
-
-        return []
-
+            every = self.models['all']
+            return [self.retrieve(id_) for id_ in every.all()]
 
     def create(self, **obj):
-        logging.debug('Model create!')
-
-    def retrieve(self, location_id):
-        logging.debug('Model retrieve!')
-
-    def update(self, **obj):
-        logging.debug('Model update!')
+        obj['_id'] = uuid.uuid4()
+        obj['_active'] = True
+        self.update(**obj)
+        return obj
 
     def delete(self, location_id):
-        logging.debug('Model delete!')
+        obj['_id'] = location_id
+        obj['_active'] = False
+        self.update(**obj)
+
 
 
 

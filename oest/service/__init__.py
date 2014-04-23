@@ -7,6 +7,7 @@ from pyramid.config import Configurator
 from pyramid.request import Request
 
 from thredis import UnifiedSession
+from thredis.util import JsonEncoder
 
 import oest.model
 
@@ -30,7 +31,7 @@ def main(global_config, **settings):
     ModelViews(oest.model.Location).config(config, route_prefix='/location')
 
     # config.add_renderer('jsonp', pyramid.renderers.JSONP(param_name='callback', indent=4))
-    json = pyramid.renderers.JSON(separators=(',', ':'), cls=thredis.JSONEncoder)
+    json = pyramid.renderers.JSON(separators=(',', ':'), cls=JsonEncoder)
     def adapt_uuid(obj, request):
         return obj.urn
     json.add_adapter(uuid.UUID, adapt_uuid)
