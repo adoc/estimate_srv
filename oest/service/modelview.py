@@ -2,6 +2,7 @@ import logging
 import formencode
 import posixpath
 import thredis
+import thredis.model
 import pyramid.config
 import pyramid.httpexceptions
 import pyramid.response
@@ -36,7 +37,9 @@ def validate_model(params=None, match=None, headers=lambda r: tuple()):
             def validate_params(this):
                 data = request.json_body or request.params
                 try:
-                    return params.to_python(data)
+                    data = params.to_python(data)
+                    print("Validate params %s " % data)
+                    return data
                 except formencode.Invalid as e:
                     logging.error("`validate_model` failed on request.params %s. Error: %s" % (data, e.msg))
                     raise pyramid.httpexceptions.HTTPBadRequest(headers=headers(request),
@@ -170,7 +173,7 @@ class ModelViews:
     Views.
     """
     def __init__(self, model_class, config=None):
-        if issubclass(model_class, oest.model.ModelObject):
+        if issubclass(model_class, thredis.model.ModelObject):
             self.__model_class = model_class
         else:
             raise ValueError("`Model` requires a ModelObject class for an argument.")
@@ -195,7 +198,7 @@ class ModelViews:
         return self.__model_class.update_schema
 
     def bind(self, request):
-        return self.__model_class(get_redis(request))
+        return self.__model_class(session=get_redis(request))
 
     def build_obj(self, request):
         """Builds an input object based on validated match and
@@ -233,11 +236,19 @@ class ModelViews:
                 model = self.bind(request)
                 obj = self.build_obj(request)
                 action = getattr(model, action_name)
-                return action(**obj)
+                try:
+                    return action(**obj)
+                except thredis.model.ConstraintFailed as e:
+                    request.response.status = 400
+                    return {'errors': str(e)}
+                else:
+                    raise
+
             return _model_action
 
         def add_all():
-            config.add_route_view('GET', model_action('all'), route_namespace='all')
+            config.add_route_view('GET', model_action('all'),
+                                    route_namespace='all')
 
         def add_create():
             config.add_route_view('POST', model_action('create'), 

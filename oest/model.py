@@ -2,28 +2,32 @@
 import logging
 import uuid
 import formencode
-import thredis
 import thredis.model
 
 
-# General, maybe in `thredis.schema`
-class ModelObject:
-    modelspace = 'model'
+# TODO: Do the conversion in backbone and just sent lists of zips.
+class ZipValidator(formencode.validators.FancyValidator):
+    min = 5
+    max = 1024
 
-    def __init__(self, session):
-        self.s = session
-        self.models = dict(self.__build_models())
+    subval = formencode.validators.Int(min=90000, max=99999)
+    if_empty = tuple()
+    def _convert_to_python(self, value, state):
+        print("ZipValidator Convert to")
+        value = value or ''
 
-    def __build_models(self):
-        for name, ModelCls in self.schema.items():
-            yield name, ModelCls(self.modelspace,
-                                    ModelCls.__name__.lower(),
-                                    name, session=self.s)
+        def extract_string():
+            for zip_ in value.split(','):
+                if zip_:
+                    yield self.subval._convert_to_python(zip_, state)
 
-    def _get_model(self, modelname):
-        if modelname in self.models:
-            return self.models[modelname]
+        return tuple(extract_string())
 
+    def _validate_python(self, value, state):
+        print("ZipValidator Validate")
+        assert isinstance(value, tuple)
+        for zip_ in value:
+            self.subval.validate_python(zip_, state)
 
 
 # TODO: Extend the basic validator types.
@@ -42,6 +46,7 @@ class LocationCreateSchema(formencode.schema.Schema):
     key = formencode.validators.String(min=1, max=16, not_empty=True, lower=True, if_missing=None)
     name = formencode.validators.UnicodeString(min=3, max=64, not_empty=True, if_missing=None)
     desc = formencode.validators.UnicodeString(min=5, max=1024, not_empty=False, if_missing=None)
+    zips = ZipValidator()
 
 
 class LocationUpdateSchema(formencode.schema.Schema):
@@ -56,8 +61,10 @@ class LocationUpdateSchema(formencode.schema.Schema):
     key = formencode.validators.String(min=1, max=16, not_empty=True, lower=True, if_missing=None)
     name = formencode.validators.UnicodeString(min=3, max=64, not_empty=True, if_missing=None)
     desc = formencode.validators.UnicodeString(min=5, max=1024, not_empty=False, if_missing=None)
+    zips = ZipValidator()
 
 
+'''
 class ZipCodeSchema(formencode.schema.Schema):
     allow_extra_fields = True
     filter_extra_fields = True
@@ -65,17 +72,96 @@ class ZipCodeSchema(formencode.schema.Schema):
     zip_id = formencode.validators.Int(min=90000, max=99999)
 
 
+class ZipCodesSchema(formencode.schema.Schema):
+    allow_extra_fields = True
+    filter_extra_fields = True
+
+    zips = formencode.validators.String(min=5, max=1024)
+
+    def _to_python(self, value_dict, state):
+        #valid??
+        print("ZipCodesSchema._to_python()")
+        zips = value_dict.get('zips')
+        if zips:
+            value_dict['zips'] = (
+                ZipCodeSchema.to_python(zip_) for zip_ in zips.split(','))
+        return value_dict
+
+
 class LocationZipCodeGetSchema(LocationGetSchema, ZipCodeSchema):
     pass
+'''
+
+#Submodel
+class LocationZipCode(thredis.model.SubModelObject):
+    modelspace = 'zips'
+    id_attr = '_id'
+
+    def model(self, id_):
+        return thredis.model.Set(self.namespace, 'set', str(id_),
+                                 session=self.s)
+
+    def retrieve(self, id_):
+        return self.model(id_).all()
+
+    def update(self, id_, *objs):
+        print ('LocationZipCode.update(%s, *%s)' % (id_, objs))
+        ziplocation_model = ZipCodeLocation(session=self.s)
+        current_model = self.model(id_)
+
+        # Check for any of these zips in other locations, otherwise add
+        #   it to the location.
+        # Constraint.
+        for zip_ in objs:
+            location_id = ziplocation_model.retrieve(zip_)
+            if location_id and location_id != id_:
+                location_obj = self.supermodel.retrieve(location_id)
+                print("Deleting %s from %s" % (zip_, location_obj['name']))
+                self.model(location_id).delete(zip_)
+
+                #location_obj = self.supermodel.retrieve(location_id)
+                #raise thredis.model.UniqueFailed("This zip '%s' is already "
+                #    "applied to Location '%s'." % (zip_, location_obj['name']))
+
+        # Check for removed Zips
+        #objs_set = set(objs)
+        for delete_zip in current_model.all() - set(objs):
+            ziplocation_model.delete(delete_zip)
+            current_model.delete(delete_zip)
+            #print("Delete %s" % delete)
+
+
+        ziplocation_model.update(id_, *objs)
+        current_model.add(*objs)
+
+    def delete(self, id_, *objs):
+        self.model(id_).delete(*objs)
+
+
+class ZipCodeLocation(thredis.model.ModelObject):
+    modelspace = 'zip'
+
+    def model(self, zip_):
+        return thredis.model.String(self.namespace, 'string', str(zip_),
+                session=self.s)
+
+    def retrieve(self, zip_):
+        return self.model(zip_).get()
+
+    def update(self, location_id, *zips):
+        print("ZipCodeLocation.update(%s, *%s)" % (location_id, zips))
+        for zip_ in zips:
+            self.model(zip_).set(location_id)
+
+    def delete(self, zip_):
+        self.model(zip_).delete()
 
 
 
 
-
-class Location(ModelObject):
+class Location(thredis.model.Record):
     """
     """
-
     modelspace = 'location'
     id_attr = '_id'
 
@@ -89,70 +175,9 @@ class Location(ModelObject):
             'record': thredis.model.Hash
             }
 
-    @staticmethod
-    def _ingress(obj):
-        obj['_id'] = uuid.UUID(obj['_id'])
+    unique = {'key', 'name'}
 
-        return obj
-
-    @staticmethod
-    def _egress(obj):
-        obj['_id'] = str(obj['_id'])
-
-        return obj
-
-    def _retrieve(self, location_id):
-        record = self.models['record']
-        return self._egress(record.get(location_id))
-    retrieve = _retrieve
-
-    def _update(self, **obj):
-        active = self.models['active']
-        every = self.models['all']
-        record = self.models['record']
-
-        obj = self._ingress(obj)
-
-        print(obj)
-
-        if '_active' in obj:
-            if obj['_active'] is True:
-                active.add(obj['_id'])
-            else:
-                active.delete(obj['_id'])
-
-        if '_id' in obj:
-            every.add(obj['_id'])
-            record.set(obj['_id'], obj)
-        else:
-            raise Exception("model update requires _id value")
-
-    update = _update
-
-    def all(self, **obj):
-        # Let's get in to the "location:active:set"
-        logging.debug('Model all! obj: %s' % obj)
-        record = self.models['record']
-
-        if obj.get('active') is True:
-            active = self.models['active']
-            return [self.retrieve(id_) for id_ in active.all()]
-        else:
-            every = self.models['all']
-            return [self.retrieve(id_) for id_ in every.all()]
-
-    def create(self, **obj):
-        obj['_id'] = uuid.uuid4()
-        obj['_active'] = True
-        self.update(**obj)
-        return obj
-
-    def delete(self, location_id):
-        obj['_id'] = location_id
-        obj['_active'] = False
-        self.update(**obj)
-
-
+    child_models = {'zips': LocationZipCode}
 
 
 '''

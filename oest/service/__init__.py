@@ -1,5 +1,6 @@
 import uuid
 import thredis
+import thredis.util
 
 import pyramid.renderers
 
@@ -19,6 +20,7 @@ __DESCRIPTION__ = "Online Estimate Web Service API."
 __URL__ = "http://oest.webmob.net"
 
 
+
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
@@ -35,6 +37,7 @@ def main(global_config, **settings):
     def adapt_uuid(obj, request):
         return obj.urn
     json.add_adapter(uuid.UUID, adapt_uuid)
+    json.add_adapter(set, lambda o, r: list(o))
     config.add_renderer('json', json)
 
     # Let's add the Redis Session as a registry setting.
@@ -45,8 +48,8 @@ def main(global_config, **settings):
 
     app = config.make_wsgi_app()
     
-    from oest.service.translogger import TransLogger
-    app = TransLogger(app, setup_console_handler=False)
+    #from oest.service.translogger import TransLogger
+    #app = TransLogger(app, setup_console_handler=False)
     return app
 
 
