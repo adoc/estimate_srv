@@ -40,20 +40,24 @@ def validate_model(params=None, match=None, headers=lambda r: tuple()):
                 data = request.json_body or request.params
                 try:
                     data = params.to_python(data)
-                    print("Validate params %s " % data)
-                    return data
                 except formencode.Invalid as e:
                     logging.error("`validate_model` failed on request.params %s. Error: %s" % (data, e.msg))
+                    body = thredis.util.json.dumps({'msg': e.unpack_errors()})
                     raise pyramid.httpexceptions.HTTPBadRequest(headers=headers(request),
-                                                                body=thredis.json.dumps({'msg': e.unpack_errors()}))
+                                                                body=body)
+                else:
+                    return data
 
             def validate_match(this):
                 try:
-                    return match.to_python(request.matchdict)
-                except formencode.Invalid:
+                    data = match.to_python(request.matchdict)
+                except formencode.Invalid as e:
                     logging.error("`validate_model` failed on request.matchdict %s." % request.matchdict)
+                    body = thredis.util.json.dumps({'msg': e.unpack_errors()})
                     raise pyramid.httpexceptions.HTTPNotFound(headers=headers(request),
-                                                              body=thredis.json.dumps({'msg': e.unpack_errors()}))
+                                                              body=body)
+                else:
+                    return data
 
             if params:
                 request.set_property(validate_params, 'validated_params',
@@ -217,6 +221,7 @@ class ModelViews:
             obj.update(request.validated_params)
         if hasattr(request, 'validated_matchdict'):
             obj.update(request.validated_matchdict)
+
         return obj
 
     def config(self, config, route_prefix=''):
@@ -242,7 +247,11 @@ class ModelViews:
             def _model_action(this, request):
                 #TODO: Let's deal with query args!
                 model = self.bind(request)
+
                 obj = self.build_obj(request)
+                print(obj)
+
+
                 action = getattr(model, action_name)
                 try:
                     return action(**obj)
@@ -261,8 +270,7 @@ class ModelViews:
         def add_create():
             config.add_route_view('POST', model_action('create'), 
                     route_namespace='create',
-                    decorators=(validate_model(match=self.get_schema,
-                                               params=self.create_schema,
+                    decorators=(validate_model(params=self.create_schema,
                                                headers=config.headers),
                                 execute_model))
 

@@ -112,7 +112,6 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
                         }
                     }
                 });
-
                 return false;
             },
             selectItem: function (ev) {
@@ -128,12 +127,10 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
             },
             editItem: function (ev) {
                 /* */
-
                 var id = this.getItemId(ev);
                 if (this._edited !== id) {
                     this.renderOnly(id, id);
                 }
-
                 return false;
             },
             saveItem: function(ev) {
@@ -242,6 +239,16 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
                 console.log(this.collection_model.url)
             }
         });*/
+
+        var ZipTest = Backbone.View.extend({
+            events: {
+                'click button[name="zip_test"]': 'zipTest',
+            },
+            zipTest: function(ev) {
+
+            }
+        });
+
 
         return {
             LocationList: LocationList,

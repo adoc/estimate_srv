@@ -1,75 +1,89 @@
 <div class="container">
-<p class="pull-right">Click a line item once to "select it". Click it again or click "Edit" to modify the entry.<p>
-<div class="clearfix"></div>
-<p class="pull-right">Zip codes are a comma (,) delimited list. Simple add or remove them as needed.</p>
-</div>
-<form id="locations_form">
-    <table class="table striped">
+    <table class="table striped pull-left" style="width: auto;">
         <tbody>
-            <tr class="new_item">
-                <td class="form-group">
-                    <input class="form-control" type="text" name="key" size="5" maxlength="16" />
-                    <label class="control-label"></label>
-                </td>
-                <td class="form-group">
-                    <input class="form-control" type="text" name="name" size="32" maxlength="32" />
-                    <label class="control-label"></label>
-                </td>
-                <td class="form-group">
-                    <input class="form-control" type="text" name="zips" size="32" maxlength="1024" />
-                    <label class="control-label"></label>
-                </td>
-                <td class="form-group" style="width: 300px;">
-                    <button type="button" name="new_btn" class="btn">New</button>
-                </td>
-                
+            <tr>
+                <td colspan="2"><strong>Test Zip Code</strong></td>
             </tr>
             <tr>
-                <th>Abbr.</th>
-                <th>Name</th>
-                <th>Zips</th>
-                <th></th>
+                <td><input class="form-control pull-left" type="text" name="zip" size="10" maxlength="5" /></td>
+                <td><button class="btn pull-left" type="button" name="zip_test">Test</button></td>
             </tr>
-        <% _.each(collection, function(item) { %>
-            <%
-            var id = item.get('_id'),
-                key = item.get('key'),
-                name = item.get('name'),
-                zips = item.get('zips'),
-                selected_state = (selected && selected === id),
-                selected_class = selected_state ? ' selected' : '',
-                edit_state = (edited && edited === id),
-                disabled = edit_state ? '' : ' disabled="disabled"',
-                edit_class = edit_state && ' edited' || '';
-            %>
-            <tr id="<%=id%>" class="collection_item select_item<%=selected_class%><%=edit_class%>" data-id="<%=id%>">
-                <td class="form-group">
-                    <input class="form-control"<%=disabled%> type="text" name="key" value="<%=key%>" size="5" maxlength="16" />
-                    <label class="control-label"></label>
-                </td>
-                <td class="form-group">
-                    <input class="form-control"<%=disabled%> type="text" name="name" value="<%=name%>" size="32" maxlength="32" />
-                    <label class="control-label"></label>
-                </td>
-                <td class="form-group">
-                    <input class="form-control"<%=disabled%> type="text" name="zips" value="<%=zips%>" size="32" maxlength="1024" />
-                    <label class="control-label"></label>
-                </td>
-            <% if (edit_state) { %>
-                <td class="form-group">
-                    <button type="button" name="save_btn" class="btn btn-primary" data-id="<%=id%>">Save</button>
-                    <button type="button" name="cancel_btn" class="btn btn-warning" data-id="<%=id%>">Cancel</button>
-                </td>
-            <% } else if (selected_state) { %>
-                <td class="form-group">
-                    <button type="button" name="edit_btn" class="btn btn-primary" data-id="<%=id%>">Edit</button>
-                    <button type="button" name="delete_btn" class="btn btn-warning" data-id="<%=id%>">Delete</button>
-                </td>
-            <% } else { %>
-                <td class="form-group">&nbsp;</td>
-            <% } %>
-            </tr>
-        <% }); %>
         </tbody>
     </table>
-</form>
+    <div class="pull-right">
+        <p>Click a line item once to "select it". Click it again or click "Edit" to modify the entry.<p>
+        <p>Zip codes are a comma (,) delimited list. Simple add or remove them as needed.</p>
+    </div>
+</div>
+<div class="container">
+    <form id="locations_form">
+        <table class="table striped">
+            <tbody>
+                <tr class="new_item">
+                    <td class="form-group">
+                        <input class="form-control" type="text" name="key" size="5" maxlength="16" />
+                        <label class="control-label"></label>
+                    </td>
+                    <td class="form-group">
+                        <input class="form-control" type="text" name="name" size="32" maxlength="32" />
+                        <label class="control-label"></label>
+                    </td>
+                    <td class="form-group">
+                        <input class="form-control" type="text" name="zips" size="32" maxlength="1024" />
+                        <label class="control-label"></label>
+                    </td>
+                    <td class="form-group" style="width: 300px;">
+                        <button type="button" name="new_btn" class="btn">New</button>
+                    </td>
+                    
+                </tr>
+                <tr>
+                    <th>Abbr.</th>
+                    <th>Name</th>
+                    <th>Zips</th>
+                    <th></th>
+                </tr>
+            <% _.each(collection, function(item) { %>
+                <%
+                var id = item.get('_id'),
+                    key = item.get('key'),
+                    name = item.get('name'),
+                    zips = item.get('zips'),
+                    selected_state = (selected && selected === id),
+                    selected_class = selected_state ? ' selected' : '',
+                    edit_state = (edited && edited === id),
+                    disabled = edit_state ? '' : ' disabled="disabled"',
+                    edit_class = edit_state && ' edited' || '';
+                %>
+                <tr id="<%=id%>" class="collection_item select_item<%=selected_class%><%=edit_class%>" data-id="<%=id%>">
+                    <td class="form-group">
+                        <input class="form-control"<%=disabled%> type="text" name="key" value="<%=key%>" size="5" maxlength="16" />
+                        <label class="control-label"></label>
+                    </td>
+                    <td class="form-group">
+                        <input class="form-control"<%=disabled%> type="text" name="name" value="<%=name%>" size="32" maxlength="32" />
+                        <label class="control-label"></label>
+                    </td>
+                    <td class="form-group">
+                        <input class="form-control"<%=disabled%> type="text" name="zips" value="<%=zips%>" size="32" maxlength="1024" />
+                        <label class="control-label"></label>
+                    </td>
+                <% if (edit_state) { %>
+                    <td class="form-group">
+                        <button type="button" name="save_btn" class="btn btn-primary" data-id="<%=id%>">Save</button>
+                        <button type="button" name="cancel_btn" class="btn btn-warning" data-id="<%=id%>">Cancel</button>
+                    </td>
+                <% } else if (selected_state) { %>
+                    <td class="form-group">
+                        <button type="button" name="edit_btn" class="btn btn-primary" data-id="<%=id%>">Edit</button>
+                        <button type="button" name="delete_btn" class="btn btn-warning" data-id="<%=id%>">Delete</button>
+                    </td>
+                <% } else { %>
+                    <td class="form-group">&nbsp;</td>
+                <% } %>
+                </tr>
+            <% }); %>
+            </tbody>
+        </table>
+    </form>
+</div>

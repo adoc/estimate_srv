@@ -27,12 +27,9 @@ def main(global_config, **settings):
     config = Configurator(settings=settings)
     config.add_static_view('static', 'static', cache_max_age=3600)
 
-    # config.include('oest.service.views:config_this', route_prefix='/')
-
     ModelViews(oest.model.Location).config(config, route_prefix='/location')
     ModelViews(oest.model.ZipCodeLocation).config(config, route_prefix='/zip')
 
-    # config.add_renderer('jsonp', pyramid.renderers.JSONP(param_name='callback', indent=4))
     json = pyramid.renderers.JSON(separators=(',', ':'), cls=JsonEncoder)
     def adapt_uuid(obj, request):
         return obj.urn

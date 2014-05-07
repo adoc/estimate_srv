@@ -49,8 +49,8 @@ class LocationCreateSchema(formencode.schema.Schema):
     allow_extra_fields = True
     filter_extra_fields = True
 
-    key = formencode.validators.String(min=1, max=16, not_empty=True, lower=True, if_missing=None)
-    name = formencode.validators.UnicodeString(min=3, max=64, not_empty=True, if_missing=None)
+    key = formencode.validators.String(min=1, max=16, not_empty=True, lower=True)
+    name = formencode.validators.UnicodeString(min=3, max=64, not_empty=True)
     desc = formencode.validators.UnicodeString(min=5, max=1024, not_empty=False, if_missing=None)
     zips = ZipValidator()
 
