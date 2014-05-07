@@ -1,6 +1,7 @@
 import logging
 import formencode
 import posixpath
+import urllib.parse
 import thredis
 import thredis.model
 import pyramid.config
@@ -22,12 +23,13 @@ def validate_model(params=None, match=None, headers=lambda r: tuple()):
         raise ValueError("`validate_model` expected a `params` schema or a `match` "
                             "schema.")
 
-    if params and issubclass(params, formencode.Schema):
+    # Check to see if Validator works as well.
+    if params and issubclass(params, (formencode.Schema, formencode.FancyValidator)):
         params = params()
     elif params is not None:
         raise ValueError("`params` expected a `formencode.Schema` type.")
 
-    if match and issubclass(match, formencode.Schema):
+    if match and issubclass(match, (formencode.Schema, formencode.FancyValidator)):
         match = match()
     elif match is not None:
         raise ValueError("`match` expected a `formencode.Schema` type.")
@@ -137,7 +139,12 @@ class CrudConfigurator:
         # At first glance, this may appear insecure, but if the referer
         # should be checked, it should be checked elsewhere.
         if request.referer:
-            headers.append(('Access-Control-Allow-Origin', request.referer.rstrip('/')))
+            refp = urllib.parse.urlparse(request.referer)
+            origin = urllib.parse.urlunparse((refp.scheme, refp.netloc, '', '', '', ''))
+
+            headers.append(('Access-Control-Allow-Origin', origin))
+            #headers.append(('Access-Control-Allow-Origin', request.referer.rstrip('/')))
+            #headers.append(('Access-Control-Allow-Origin', request.referer))
         return headers
 
     def auth_origin(self, view_callable):
@@ -233,6 +240,7 @@ class ModelViews:
             """Hook in to model actions with this decorator. The inner
             function acts as the view_callable."""
             def _model_action(this, request):
+                #TODO: Let's deal with query args!
                 model = self.bind(request)
                 obj = self.build_obj(request)
                 action = getattr(model, action_name)

@@ -128,6 +128,7 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
             },
             editItem: function (ev) {
                 /* */
+
                 var id = this.getItemId(ev);
                 if (this._edited !== id) {
                     this.renderOnly(id, id);
@@ -148,7 +149,8 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
                 if (item.hasChanged()) { // Does .save really not check to see if the model has changed?
                     item.save(form_obj, {
                         success: function () {
-                            that.renderOnly();
+                            that.render(); // Fetch and render.
+                            //that.renderOnly();
                         },
                         error: function(xhr, textStatus) {
                             if(textStatus.status==400) {

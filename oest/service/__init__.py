@@ -20,7 +20,6 @@ __DESCRIPTION__ = "Online Estimate Web Service API."
 __URL__ = "http://oest.webmob.net"
 
 
-
 def main(global_config, **settings):
     """ This function returns a Pyramid WSGI application.
     """
@@ -31,6 +30,7 @@ def main(global_config, **settings):
     # config.include('oest.service.views:config_this', route_prefix='/')
 
     ModelViews(oest.model.Location).config(config, route_prefix='/location')
+    ModelViews(oest.model.ZipCodeLocation).config(config, route_prefix='/zip')
 
     # config.add_renderer('jsonp', pyramid.renderers.JSONP(param_name='callback', indent=4))
     json = pyramid.renderers.JSON(separators=(',', ':'), cls=JsonEncoder)
@@ -42,6 +42,9 @@ def main(global_config, **settings):
 
     # Let's add the Redis Session as a registry setting.
     config.add_settings(redis=UnifiedSession.from_url(settings['redis']))
+
+    config.add_route('info_route', '/')
+    config.add_view(info, route_name='info_route', renderer='json')
 
     config.add_route('toolbar_route', '/toolbar')
     config.add_view(toolbar, route_name='toolbar_route', renderer="string")
@@ -58,8 +61,10 @@ def toolbar(request):
     return """<html><body><h2>Toolbar!<h2></body></html>"""
 
 
-def info():
+def info(request):
+    request.response.headers.update([('Access-Control-Allow-Origin', '*')])
     return {
+        'sig': "On6t5z4edrRLTpaITVECjOmY8Lu8nGswa4WeN7TmNmDDByHtmj8IrvTHWkGMMz6IJilN1rsnSo8bycBkDT8ysSnitogXV2mF",
         'version': __VERSION__,
         'description': __DESCRIPTION__,
         'url': __URL__
