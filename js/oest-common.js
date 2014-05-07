@@ -20,8 +20,6 @@ require.config({
     paths: {
         underscore: ['https://code.webmob.net/js/api1.0/underscore.min',
                     '/js/api1.0/underscore.min'],
-        //jquery: ['https://code.webmob.net/js/api1.0/zepto.min',
-        //            '/js/api1.0/zepto.min'],
         jquery: ['https://code.webmob.net/js/api1.0/jquery-min',
                     '/js/api1.0/jquery-min'],
         text: ['https://code.webmob.net/js/api1.0/text.min',
@@ -42,6 +40,7 @@ require.config({
                     '/js/api1.0/persist.min'],
         serialize_object: ['https://code.webmob.net/js/api1.0/jquery.serialize-object.min',
                     '/js/api1.0/jquery.serialize-object.min'],
+        oest_api: ['/js/oest-api'],
         oest_boot: ['/js/oest-boot'],
         oest_core: ['/js/oest-core'],
         oest_config: ['/js/oest-config'],
@@ -99,7 +98,7 @@ require.config({
             dets: ['jquery', 'oest_core', 'oest_config']
         },
         admin_views: {
-            deps: ['serialize_object'],
+            deps: ['oest_api','serialize_object'],
             exports: 'Oest.AdminViews'
         }
     },

@@ -93,12 +93,11 @@
                 Config.apiTight = true;
                 // Config.apiDefault = {remotes: ${remotes|n}};
 
-
                 var proxiedSync = Backbone.sync;
                 Backbone.sync = function(method, model, options) {
                     options || (options = {});
                     if (!options.xhrFields) {
-                        options.xhrFields = {withCredentials:true};
+                        options.xhrFields = {withCredentials: true};
                     }
                     return proxiedSync(method, model, options);
                 };
@@ -111,6 +110,7 @@
                 var list = new AdminViews.LocationList();
                 list.render();
 
+                var ziptest = new AdminViews.ZipTest();
 
             }
         );

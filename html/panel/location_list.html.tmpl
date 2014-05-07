@@ -1,15 +1,19 @@
 <div class="container">
-    <table class="table striped pull-left" style="width: auto;">
-        <tbody>
-            <tr>
-                <td colspan="2"><strong>Test Zip Code</strong></td>
-            </tr>
-            <tr>
-                <td><input class="form-control pull-left" type="text" name="zip" size="10" maxlength="5" /></td>
-                <td><button class="btn pull-left" type="button" name="zip_test">Test</button></td>
-            </tr>
-        </tbody>
-    </table>
+    <form id="zip_test">
+        <table class="table striped pull-left" style="width: auto;">
+            <tbody>
+                <tr>
+                    <td colspan="2"><strong>Test Zip Code</strong></td>
+                    <td>Response</td>
+                </tr>
+                <tr>
+                    <td><input class="form-control pull-left" type="text" name="zip" size="10" maxlength="5" /></td>
+                    <td><button class="btn pull-left" type="button" name="zip_test">Test</button></td>
+                    <td id="zip_test_response"></td>
+                </tr>
+            </tbody>
+        </table>
+    </form>
     <div class="pull-right">
         <p>Click a line item once to "select it". Click it again or click "Edit" to modify the entry.<p>
         <p>Zip codes are a comma (,) delimited list. Simple add or remove them as needed.</p>

@@ -1,4 +1,4 @@
-define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
+define(['backbone', 'oest_models', 'text!/location_list.html.tmpl', 'oest_api'],
     function (Backbone, Models, location_list_tmpl, location_zip_list_tmpl) {
 
         var invalidForm = function(form, prefix) {
@@ -217,6 +217,7 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
                 List.prototype.initialize.apply(this, arguments);
                 this.zip_codes_view = new ZipCodeList();
             }*/
+
         });
 
         /*
@@ -241,18 +242,26 @@ define(['backbone', 'oest_models', 'text!/location_list.html.tmpl'],
         });*/
 
         var ZipTest = Backbone.View.extend({
+            el: ".page",
             events: {
-                'click button[name="zip_test"]': 'zipTest',
+                'click button[name="zip_test"]': 'zipTest'
             },
-            zipTest: function(ev) {
+            zipTest: function (ev) {
+                var location = $OE.getZipLocation($('input[name="zip"]').val())
 
+                var resEl = $('#zip_test_response')
+
+                if (location) {
+                    resEl.html(location.name);
+                } else {
+                    resEl.html("None");
+                }
             }
         });
 
-
         return {
             LocationList: LocationList,
-            // ZipCodeList: ZipCodeList
+            ZipTest: ZipTest
         };
 
     }
